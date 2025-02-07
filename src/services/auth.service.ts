@@ -54,7 +54,7 @@ export const valrefreshToken = async (token: string) => {
     throw createHttpError(400, 'Refresh token is required');
   }
 
-  const existingToken = await prisma.refreshToken.findFirst({ // 🔹 Ganti findUnique -> findFirst
+  const existingToken = await prisma.refreshToken.findFirst({ 
     where: { token },
   });
 
