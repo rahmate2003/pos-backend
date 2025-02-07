@@ -19,20 +19,27 @@ const refreshTokenSchema = Joi.object({
 
 
 export const validate = (schema: Joi.ObjectSchema) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const { error } = schema.validate(req.body, { abortEarly: false });
 
     if (error) {
-      return res.status(400).json({ errors: error.details.map((err) => err.message) });
+      res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: error.details.map((err) => ({
+          field: err.path.join('.'),
+          message: err.message
+        }))
+      });
+
+      return; 
     }
-    
-    next();
+
+    return next(); 
   };
 };
 
-export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
-  next();
-};
+
 export const validateRegister = validate(registerSchema);
 export const validateLogin = validate(loginSchema);
 export const validateRefreshToken = validate(refreshTokenSchema);
