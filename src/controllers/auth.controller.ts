@@ -1,6 +1,6 @@
 //src/controllers/auth.controller.ts
 import { Request, Response, NextFunction } from 'express';
-import { login, register, refreshToken } from '../services/auth.service';
+import { login, register, valrefreshToken } from '../services/auth.service';
 import { validateRegister, validateLogin, validateRefreshToken } from '../validators/auth.validator';
 
 export const registerController = [
@@ -42,7 +42,7 @@ export const refreshTokenController = [
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { refreshToken } = req.body;
-      const result = await refreshToken(refreshToken);
+      const result = await valrefreshToken(refreshToken);
       res.json({
         success: true,
         message: 'Token berhasil diperbarui',

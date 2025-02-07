@@ -6,10 +6,14 @@ import config from '../config/config';
 import createHttpError from 'http-errors';
 
 const prisma = new PrismaClient();
-
 export const generateTokens = async (userId: number) => {
-  const accessToken = jwt.sign({ userId }, config.jwt.secret, { expiresIn: config.jwt.accessExpiration });
-  const refreshToken = jwt.sign({ userId }, config.jwt.secret, { expiresIn: config.jwt.refreshExpiration });
+  const accessToken = jwt.sign(
+    { userId }, config.jwt.secret, { expiresIn: config.jwt.accessExpiration }
+  );
+
+ const refreshToken = jwt.sign(
+    { userId }, config.jwt.Refreshsecret, { expiresIn: config.jwt.refreshExpiration }
+  );
 
   await prisma.refreshToken.deleteMany({ where: { userId } });
   await prisma.refreshToken.create({ data: { userId, token: refreshToken } });
@@ -45,16 +49,23 @@ export const login = async (username: string, password: string) => {
   const tokens = await generateTokens(user.id);
   return { user: { id: user.id, email: user.email, username: user.username }, tokens };
 };
+export const valrefreshToken = async (token: string) => {
+  if (!token) {
+    throw createHttpError(400, 'Refresh token is required');
+  }
 
-export const refreshToken = async (token: string) => {
-  const existingToken = await prisma.refreshToken.findUnique({ where: { token } });
+  const existingToken = await prisma.refreshToken.findFirst({ // 🔹 Ganti findUnique -> findFirst
+    where: { token },
+  });
 
   if (!existingToken) {
     throw createHttpError(403, 'Invalid refresh token');
   }
 
-  const payload = jwt.verify(token, config.jwt.secret) as { userId: number };
+  const payload = jwt.verify(token, config.jwt.Refreshsecret) as { userId: number };
+
   const tokens = await generateTokens(payload.userId);
 
   return { tokens };
 };
+
