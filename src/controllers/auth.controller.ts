@@ -1,12 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { login,register, refreshToken } from '../services/auth.service';
-import { validateRegister, validateLogin, validateRefreshToken } from '../validators/auth.validator';
+import { handleValidationErrors,validateRegister, validateLogin, validateRefreshToken } from '../validators/auth.validator';
 
-const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
-  next();
-};
 
-// Register Controller
 export const registerController = [
   validateRegister,
   handleValidationErrors,
@@ -21,14 +17,14 @@ export const registerController = [
     }
   }
 ];
-// Login Controller
+
 export const loginController = [
   validateLogin,
   handleValidationErrors,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, password } = req.body;
-      const tokens = await login(email, password);
+      const { username, password } = req.body;
+      const tokens = await login(username, password);
       res.json(tokens);
     } catch (error: any) {
       next(error);
@@ -36,7 +32,6 @@ export const loginController = [
   },
 ];
 
-// Refresh Token Controller
 export const refreshTokenController = [
   validateRefreshToken,
   handleValidationErrors,

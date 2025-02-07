@@ -23,7 +23,3 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
 
 export const authenticate = passport.authenticate('jwt', { session: false });
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err);
-  res.status(500).json({ message: err.message });
-};

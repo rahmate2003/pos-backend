@@ -7,7 +7,7 @@ import config from '../config/config';
 const prisma = new PrismaClient();
 
 export const register = async (email: string, username: string, password: string) => {
-  // Cek apakah email atau username sudah digunakan
+  
   const existingUser = await prisma.user.findFirst({
     where: {
       OR: [{ email }, { username }],
@@ -18,10 +18,10 @@ export const register = async (email: string, username: string, password: string
     throw new Error('Email atau username sudah digunakan');
   }
 
-  // Hash password sebelum disimpan
+  
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Simpan user baru ke database
+  
   const newUser = await prisma.user.create({
     data: {
       email,
@@ -30,7 +30,7 @@ export const register = async (email: string, username: string, password: string
     },
   });
 
-  // Buat token JWT untuk user baru
+  
   const accessToken = jwt.sign(
     { userId: newUser.id },
     config.jwt.secret,
@@ -43,7 +43,7 @@ export const register = async (email: string, username: string, password: string
     { expiresIn: config.jwt.refreshExpiration }
   );
 
-  // Simpan refresh token ke database
+  
   await prisma.refreshToken.create({
     data: {
       userId: newUser.id,
@@ -54,8 +54,8 @@ export const register = async (email: string, username: string, password: string
   return { accessToken, refreshToken };
 };
 
-export const login = async (email: string, password: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+export const login = async (username: string, password: string) => {
+  const user = await prisma.user.findUnique({ where: { username } });
 
   if (user && await bcrypt.compare(password, user.password)) {
     const accessToken = jwt.sign({ userId: user.id }, config.jwt.secret, { expiresIn: config.jwt.accessExpiration });

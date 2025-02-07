@@ -10,33 +10,23 @@ import { notFoundHandler } from './middlewares/notFound.middleware';
 
 const app = express();
 
-// Middlewares
-app.use(morgan('dev')); // Logging
-app.use(helmet()); // Security headers
+app.use(morgan('dev')); 
+app.use(helmet());
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', // Allow specific origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
   // allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  credentials: true, // Allow credentials
+  credentials: true, 
 }));
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100, 
 });
 app.use(limiter);
-
-// Body parser
 app.use(express.json());
-
-// Routes
 app.use('/api/v1', routes);
-
-// 404 Not Found Handler
 app.use(notFoundHandler);
-
-// Error Handler
 app.use(errorHandler);
 
 export default app;

@@ -9,7 +9,7 @@ export const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
+  username: Joi.string().min(3).max(30).required(),
   password: Joi.string().min(6).required(),
 });
 
@@ -17,7 +17,7 @@ const refreshTokenSchema = Joi.object({
   refreshToken: Joi.string().required(),
 });
 
-// Middleware untuk validasi request
+
 export const validate = (schema: Joi.ObjectSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const { error } = schema.validate(req.body, { abortEarly: false });
@@ -30,6 +30,9 @@ export const validate = (schema: Joi.ObjectSchema) => {
   };
 };
 
+export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
+  next();
+};
 export const validateRegister = validate(registerSchema);
 export const validateLogin = validate(loginSchema);
 export const validateRefreshToken = validate(refreshTokenSchema);
