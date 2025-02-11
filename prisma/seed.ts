@@ -9,14 +9,14 @@ async function main() {
   const user = await prisma.user.create({
     data: {
       name: 'John Doe',
-      email: 'john.does@example.com',
-      username: 'johndoe',
+      email: 'john.doess@example.com',
+      username: 'johndosse',
       telephone: '081234567890',
       whatsapp: '081234567890',
       gender: 'male',
       password: await bcrypt.hash('password', 10),
-      id_npwp: '123456789012345',
-      id_card: '1234567890123456',
+      id_npwp: '1234561789012345',
+      id_card: '12345627890123456',
     },
   });
 

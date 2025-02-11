@@ -6,7 +6,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "cross-env NODE_ENV=development nodemon src/server.ts",
-    "prod": "cross-env NODE_ENV=production npm run build && cross-env NODE_ENV=production npm start"
+    "prod": "cross-env NODE_ENV=production npm run build && cross-env NODE_ENV=production npm start",
+    "seed":"npx ts-node prisma/seed.ts"
+  
   },
   "keywords": [],
   "author": "",

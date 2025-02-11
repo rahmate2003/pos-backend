@@ -32,12 +32,20 @@ export const generateTokens = async (userId: bigint) => {
 };
 
 export const register = async (name:string,email: string, username: string, password: string,gender:any) => {
-  const existingUser = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
+  const existingEmail = await prisma.user.findFirst({
+    where: { email },
   });
 
-  if (existingUser) {
-    throw createHttpError(409, 'Email atau username sudah digunakan');
+  if (existingEmail) {
+    throw createHttpError(409, 'Email already Registered');
+  }
+
+  const existingUsername = await prisma.user.findFirst({
+    where: { username },
+  });
+
+  if (existingUsername) {
+    throw createHttpError(409, 'Username already Registered');
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -55,26 +63,18 @@ export const register = async (name:string,email: string, username: string, pass
     data: userData
   });
 
-  const tokens = await generateTokens(newUser.id);
-  return { 
-    tokens 
-  };
+  return 
 };
 
 export const login = async (username: string, password: string) => {
   const user = await prisma.user.findUnique({ where: { username } });
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    throw createHttpError(401, 'Username atau password salah');
+    throw createHttpError(401, 'Username or password wrong');
   }
 
   const tokens = await generateTokens(user.id);
   return { 
-    user: { 
-      id: user.id.toString(), 
-      email: user.email, 
-      username: user.username 
-    }, 
     tokens 
   };
 };

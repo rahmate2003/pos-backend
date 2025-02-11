@@ -19,7 +19,7 @@ export const registerController = [
       const result = await register(name, email, username, password,gender);
       res.status(201).json({
         success: true,
-        message: 'Registrasi berhasil',
+        message: 'User Created',
         data: result,
       });
     } catch (error) {
@@ -36,7 +36,7 @@ export const loginController = [
       const result = await login(username, password);
       res.json({
         success: true,
-        message: 'Login berhasil',
+        message: 'User Login',
         data: result,
       });
     } catch (error) {
