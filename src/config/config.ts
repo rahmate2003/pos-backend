@@ -14,6 +14,6 @@ export default {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
   database: {
-    url: process.env.DATABASE_URL || 'mysql://user:password@localhost:3306/pos_fnb',
+    url: process.env.DATABASE_URL || 'mysql://root:@localhost:3306/post',
   },
 };

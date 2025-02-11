@@ -3,9 +3,11 @@ import Joi from 'joi';
 import { Request, Response, NextFunction } from 'express';
 
 export const registerSchema = Joi.object({
+  name: Joi.string().min(3).max(64).required(),
   email: Joi.string().email().required(),
   username: Joi.string().min(3).max(30).required(),
   password: Joi.string().min(6).required(),
+  gender:Joi.string().required()
 });
 
 const loginSchema = Joi.object({

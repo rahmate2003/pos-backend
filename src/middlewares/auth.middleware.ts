@@ -1,3 +1,4 @@
+
 // src/middlewares/auth.middleware.ts
 import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
@@ -13,13 +14,16 @@ const jwtOptions = {
 };
 
 passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
-  const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-  if (user) {
-    return done(null, user);
-  } else {
-    return done(null, false);
+  try {
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (user) {
+      return done(null, user);
+    } else {
+      return done(null, false);
+    }
+  } catch (error) {
+    return done(error, false);
   }
 }));
 
 export const authenticate = passport.authenticate('jwt', { session: false });
-
