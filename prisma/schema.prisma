@@ -1,9 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// ---------------- SCHEMA PRISMA ----------------
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,21 +8,311 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ---------------- SCHEMA CORE (GLOBAL DATA) ----------------
+enum Gender {
+  male
+  female
 }
 
-model RefreshToken {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  token     String   @unique
+model User {
+  id        BigInt  @id @default(autoincrement())
+  name      String
+  email     String  @unique
+  username  String  @unique
+  telephone String?
+  whatsapp  String?
+  gender    Gender
+  password  String
+  id_npwp   String? @unique
+  id_card   String? @unique
+
+  StoreUsers        StoreUser[]
+  OrdersAsMember    Order[]     @relation("OrderMember")
+  OrdersAsCashier   Order[]     @relation("OrderCashier")
+  OrdersAsAdmin     Order[]     @relation("OrderAdmin")
+  PaymentsAsCashier Payment[]   @relation("PaymentCashier")
+  ShiftUser         ShiftUser[]
+  StoreBills        StoreBill[] @relation("UserStoreBills")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@map("core.User")
+}
+
+enum Store_Type {
+  food
+  electronic
+}
+
+enum Store_Status {
+  active
+  inactive
+}
+
+model Store {
+  id          BigInt       @id @default(autoincrement())
+  name        String
+  image       String
+  address     String
+  province    String
+  city        String
+  district    String
+  village     String
+  postal_code String
+  type        Store_Type
+  status      Store_Status
+  description String?      @db.Text
+  telephone   String
+  logo        String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("refresh_tokens")
+  StoreUsers StoreUser[]
+  Shifts     Shift[]
+  Products   Product[]
+  Orders     Order[]
+  ShiftUser  ShiftUser[]
+  StoreBills StoreBill[]
+
+  @@map("core.Store")
+}
+
+model StoreUser {
+  id      BigInt @id @default(autoincrement())
+  storeId BigInt
+  userId  BigInt
+  roleId  BigInt
+
+  Store Store @relation(fields: [storeId], references: [id])
+  User  User  @relation(fields: [userId], references: [id])
+  Role  Role  @relation(fields: [roleId], references: [id])
+
+  @@map("core.StoreUser")
+}
+
+model Role {
+  id        BigInt      @id @default(autoincrement())
+  name      String      @unique
+  StoreUser StoreUser[]
+  ShiftUser ShiftUser[]
+
+  @@map("core.Role")
+}
+
+model Product {
+  id          BigInt  @id @default(autoincrement())
+  name        String
+  image       String?
+  description String?
+  basePrice   BigInt
+  categoryId  BigInt
+  storeId     BigInt
+
+  createdAt DateTime @default(now())
+
+  Category     Category         @relation(fields: [categoryId], references: [id])
+  Variants     ProductVariant[]
+  Prices       ProductPrice[]
+  OrderDetails OrderDetail[]
+  Store        Store            @relation(fields: [storeId], references: [id])
+
+  @@map("business.Product")
+}
+
+model Category {
+  id   BigInt @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  name String
+
+  Products Product[]
+
+  @@map("business.Category")
+}
+
+model ProductVariant {
+  id          BigInt  @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  productId   BigInt
+  image       String?
+  description String?
+  extraPrice  BigInt
+  type        String
+
+  Product              Product               @relation(fields: [productId], references: [id])
+  ProductPriceVariants ProductPriceVariant[]
+  OrderDetailVariants  OrderDetailVariant[]
+
+  @@map("business.ProductVariant")
+}
+
+model ProductPrice {
+  id         BigInt @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  productId  BigInt
+  finalPrice BigInt
+
+  Product  Product               @relation(fields: [productId], references: [id])
+  Variants ProductPriceVariant[]
+
+  @@map("business.ProductPrice")
+}
+
+model ProductPriceVariant {
+  id               BigInt @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  productPriceId   BigInt
+  productVariantId BigInt
+
+  ProductPrice   ProductPrice   @relation(fields: [productPriceId], references: [id])
+  ProductVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@map("business.ProductPriceVariant")
+}
+
+// ---------------- SCHEMA SALES (TRANSAKSI) ----------------
+model Order {
+  id          BigInt  @id @default(autoincrement())
+  storeId     BigInt
+  memberId    BigInt?
+  cashierId   BigInt?
+  adminId     BigInt?
+  shiftId     BigInt
+  totalAmount BigInt
+  discount    BigInt  @default(0)
+  paid        BigInt  @default(0)
+  change      BigInt  @default(0)
+
+  isPaid Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  Store    Store         @relation(fields: [storeId], references: [id])
+  Member   User?         @relation(name: "OrderMember", fields: [memberId], references: [id])
+  Cashier  User?         @relation(name: "OrderCashier", fields: [cashierId], references: [id])
+  Admin    User?         @relation(name: "OrderAdmin", fields: [adminId], references: [id])
+  Shift    Shift         @relation("OrderShift", fields: [shiftId], references: [id]) // ✅ Nama relasi harus sama dengan di Shift
+  Details  OrderDetail[]
+  Payments Payment[]
+
+  @@map("sales.Order")
+}
+
+model OrderDetail {
+  id         BigInt @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  orderId    BigInt
+  productId  BigInt
+  quantity   BigInt
+  unitPrice  BigInt
+  totalPrice BigInt
+
+  Order    Order                @relation(fields: [orderId], references: [id])
+  Product  Product              @relation(fields: [productId], references: [id])
+  Variants OrderDetailVariant[]
+
+  @@map("sales.OrderDetail")
+}
+
+model OrderDetailVariant {
+  id               BigInt @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  orderDetailId    BigInt
+  productVariantId BigInt
+
+  OrderDetail    OrderDetail    @relation(fields: [orderDetailId], references: [id])
+  ProductVariant ProductVariant @relation(fields: [productVariantId], references: [id])
+
+  @@map("sales.OrderDetailVariant")
+}
+
+enum PaymentStatus {
+  paid
+  unpaid
+  cancelled
+}
+
+model PaymentMethod {
+  id          BigInt  @id @default(autoincrement())
+  name        String  @unique // Nama metode (QRIS, Bank Transfer, dll.)
+  description String? // Penjelasan opsional
+  isActive    Boolean @default(true) // Bisa aktif/nonaktifkan metode
+  feePercent  Float? // Biaya admin (%) opsional
+  taxfee      Float? // Biaya admin (%) opsional
+
+  Payments Payment[]
+
+  @@map("sales.PaymentMethod")
+}
+
+model Payment {
+  id          BigInt        @id @default(autoincrement())
+  orderId     BigInt
+  cashierId   BigInt?
+  methodId    BigInt
+  amount      BigInt
+  status      PaymentStatus @default(unpaid)
+  paymentUrl  String?
+  referenceId String?
+
+  createdAt DateTime @default(now())
+
+  Order         Order         @relation(fields: [orderId], references: [id])
+  Cashier       User?         @relation(name: "PaymentCashier", fields: [cashierId], references: [id])
+  PaymentMethod PaymentMethod @relation(fields: [methodId], references: [id])
+
+  @@map("sales.Payment")
+}
+
+// ---------------- SCHEMA BUSINESS (JADWAL SHIFT) ----------------
+enum ShiftStatus {
+  active
+  inactive
+}
+
+model Shift {
+  id        BigInt   @id @default(autoincrement())
+  storeId   BigInt
+  date      DateTime // Tanggal shift
+  startTime String // Jam mulai shift (format: "HH:MM:SS")
+  endTime   String // Jam selesai shift (format: "HH:MM:SS")
+
+  createdAt DateTime @default(now())
+
+  Store      Store       @relation(fields: [storeId], references: [id])
+  ShiftUsers ShiftUser[]
+  Orders     Order[]     @relation("OrderShift") // ✅ Tambahkan relasi dengan nama yang sama di Order
+
+  @@map("business.Shift")
+}
+
+model ShiftUser {
+  id      BigInt      @id @default(autoincrement())
+  storeId BigInt
+  shiftId BigInt
+  userId  BigInt
+  roleId  BigInt
+  status  ShiftStatus @default(active)
+
+  Store Store @relation(fields: [storeId], references: [id])
+  Shift Shift @relation(fields: [shiftId], references: [id])
+  User  User  @relation(fields: [userId], references: [id])
+  Role  Role  @relation(fields: [roleId], references: [id])
+
+  @@map("business.ShiftUser")
+}
+
+enum BillStatus {
+  paid
+  unpaid
+}
+
+model StoreBill {
+  id        BigInt     @id @default(autoincrement()) // ✅ Ubah jadi BigInt
+  storeId   BigInt
+  ownerId   BigInt
+  name      String
+  status    BillStatus
+  onDate    DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  Store Store @relation(fields: [storeId], references: [id])
+  Owner User  @relation("UserStoreBills", fields: [ownerId], references: [id])
+
+  @@map("business.StoreBill")
 }

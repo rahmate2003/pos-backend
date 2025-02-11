@@ -25,7 +25,8 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "prisma": "^6.3.1",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -43,6 +44,7 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "nodemon": "^3.1.9",
+    "prettier": "3.5.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.3"
