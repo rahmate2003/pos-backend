@@ -66,7 +66,7 @@ export const logoutController = [
   authenticate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Cast the user object to include bigint id
+    
       const user = req.user as AuthUser;
       const result = await logout(user.id);
       res.json({
