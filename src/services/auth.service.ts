@@ -15,7 +15,7 @@ export const generateTokens = async (userId: number) => {
     { userId }, config.jwt.Refreshsecret, { expiresIn: config.jwt.refreshExpiration }
   );
 
-  await prisma.refreshToken.deleteMany({ where: { userId } });
+  await prisma.refreshToken.deleteMany({ where: { Id } });
   await prisma.refreshToken.create({ data: { userId, token: refreshToken } });
 
   return { accessToken, refreshToken };

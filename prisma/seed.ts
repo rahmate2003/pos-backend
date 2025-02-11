@@ -10,7 +10,7 @@ async function main() {
     data: {
       name: 'John Doe',
       email: 'john.does@example.com',
-      username: 'johndoes',
+      username: 'johndoe',
       telephone: '081234567890',
       whatsapp: '081234567890',
       gender: 'male',
