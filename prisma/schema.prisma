@@ -32,21 +32,21 @@ model Role {
 }
 
 model User {
-  id         BigInt   @id @default(autoincrement())
-  name       String   @db.VarChar(255)
-  email      String   @unique @db.VarChar(255)
-  whatsapp   String?  @db.VarChar(15)
-  telephone  String?  @db.VarChar(15)
-  password   String   @db.Char(60)
-  gender     Gender
+  id        BigInt  @id @default(autoincrement())
+  name      String  @db.VarChar(255)
+  email     String  @unique @db.VarChar(255)
+  password  String  @db.Char(60)
+  gender    Gender
+  imageUrl  String? @db.VarChar(255)
+  whatsapp  String? @db.VarChar(15)
+  telephone String? @db.VarChar(15)
+
   id_card    String?  @db.VarChar(255)
   npwp       String?  @db.VarChar(255)
   role_id    Int
-  // tenant_id          BigInt?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   role       Role     @relation(fields: [role_id], references: [id])
-  // tenants            Tenant?     @relation(fields: [tenant_id], references: [id])
 
   tenant        Tenant[]
   activityUsers ActivityUser[]
@@ -68,6 +68,79 @@ model StoreType {
   stores Store[]
 
   @@map("store_types")
+}
+
+model Store {
+  id             BigInt           @id @default(autoincrement())
+  tenantId       BigInt
+  tenant         Tenant           @relation(fields: [tenantId], references: [id])
+  name           String           @unique @db.VarChar(255)
+  image          String           @db.VarChar(255)
+  address        String           @db.Text
+  province_id    BigInt
+  city_id        BigInt
+  district_id    BigInt
+  village_id     BigInt
+  postal_code    String           @db.VarChar(12)
+  store_type_id  Int
+  description    String?          @db.Text
+  id_type        String           @db.VarChar(50)
+  telephone      String           @db.VarChar(15)
+  logo           String?          @db.VarChar(255)
+  npwp_company   String?          @db.VarChar(255)
+  status         StoreStatus
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+  province       Province         @relation(fields: [province_id], references: [id])
+  city           City             @relation(fields: [city_id], references: [id])
+  district       District         @relation(fields: [district_id], references: [id])
+  village        Village          @relation(fields: [village_id], references: [id])
+  store_type     StoreType        @relation(fields: [store_type_id], references: [id])
+  products       Product[]
+  customers      Customer[]
+  storeBills     StoreBill[]
+  activityUsers  ActivityUser[]
+  transactions   Transaction[]
+  StoreUser      StoreUser[]
+  PurchaseOrder  PurchaseOrder[]
+  WarehouseStock WarehouseStock[]
+
+  @@map("stores")
+}
+
+model StoreUser {
+  id         BigInt     @id @default(autoincrement())
+  user_id    BigInt?
+  store_id   BigInt?
+  user       User?      @relation(fields: [user_id], references: [id])
+  store      Store?     @relation(fields: [store_id], references: [id])
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  Shift      Shift[]
+  Customer   Customer[]
+
+  @@map("store_users")
+}
+
+enum CustomerStatus {
+  active
+  inactive
+}
+
+model Customer {
+  id         BigInt         @id @default(autoincrement())
+  store_id   BigInt
+  name       String         @db.VarChar(255)
+  phone      String?        @db.VarChar(255)
+  status     CustomerStatus
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  store       Store      @relation(fields: [store_id], references: [id])
+  StoreUser   StoreUser? @relation(fields: [storeUserId], references: [id])
+  storeUserId BigInt?
+
+  @@map("customers")
 }
 
 model Province {
@@ -117,57 +190,6 @@ model Village {
   stores      Store[]
 
   @@map("villages")
-}
-
-model Store {
-  id             BigInt           @id @default(autoincrement())
-  tenantId       BigInt
-  tenant         Tenant           @relation(fields: [tenantId], references: [id])
-  name           String           @unique @db.VarChar(255)
-  image          String           @db.VarChar(255)
-  address        String           @db.Text
-  province_id    BigInt
-  city_id        BigInt
-  district_id    BigInt
-  village_id     BigInt
-  postal_code    String           @db.VarChar(12)
-  store_type_id  Int
-  description    String?          @db.Text
-  id_type        String           @db.VarChar(50)
-  telephone      String           @db.VarChar(15)
-  logo           String?          @db.VarChar(255)
-  status         StoreStatus
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @updatedAt
-  province       Province         @relation(fields: [province_id], references: [id])
-  city           City             @relation(fields: [city_id], references: [id])
-  district       District         @relation(fields: [district_id], references: [id])
-  village        Village          @relation(fields: [village_id], references: [id])
-  store_type     StoreType        @relation(fields: [store_type_id], references: [id])
-  products       Product[]
-  customers      Customer[]
-  storeBills     StoreBill[]
-  activityUsers  ActivityUser[]
-  transactions   Transaction[]
-  StoreUser      StoreUser[]
-  PurchaseOrder  PurchaseOrder[]
-  WarehouseStock WarehouseStock[]
-
-  @@map("stores")
-}
-
-model StoreUser {
-  id         BigInt     @id @default(autoincrement())
-  user_id    BigInt?
-  store_id   BigInt?
-  user       User?      @relation(fields: [user_id], references: [id])
-  store      Store?     @relation(fields: [store_id], references: [id])
-  created_at DateTime   @default(now())
-  updated_at DateTime   @updatedAt
-  Shift      Shift[]
-  Customer   Customer[]
-
-  @@map("store_users")
 }
 
 enum ShiftDay {
@@ -323,10 +345,6 @@ model Transaction {
   details          TransactionDetail[]
   payments         PaymentDetail[] // Sudah cukup untuk menangani pembayaran
 
-  // Hapus relasi langsung dengan PaymentMethod (redundan)
-  // Hapus PaymentMethod? dan paymentMethodId
-
-  // Jika transaksi ini merupakan pembelian dari supplier, relasi tetap dipertahankan
   supplier        Supplier?      @relation(fields: [supplier_id], references: [id])
   supplier_id     BigInt?
   PaymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
@@ -382,26 +400,6 @@ model StoreBill {
   user       User            @relation(fields: [user_id], references: [id])
 
   @@map("store_bills")
-}
-
-enum CustomerStatus {
-  active
-  inactive
-}
-
-model Customer {
-  id            BigInt         @id @default(autoincrement())
-  store_id      BigInt
-  store_user_id BigInt
-  name          String         @db.VarChar(255)
-  phone         String?        @db.VarChar(255)
-  status        CustomerStatus
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
-  store         Store          @relation(fields: [store_id], references: [id])
-  store_user    StoreUser      @relation(fields: [store_user_id], references: [id])
-
-  @@map("customers")
 }
 
 model Supplier {

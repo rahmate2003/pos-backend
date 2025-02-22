@@ -5,7 +5,12 @@ import jwt from 'jsonwebtoken';
 import config from '../config/config';
 import createHttpError from 'http-errors';
 import redisClient from '../utils/redis';
+import { serializeUser } from '../utils/serialize';
 const prisma = new PrismaClient();
+enum Gender {
+  MALE = "male",
+  FEMALE = "female"
+}
 
 
 export const generateTokens = async (userId: bigint) => {
@@ -31,54 +36,66 @@ export const generateTokens = async (userId: bigint) => {
   return { accessToken, refreshToken };
 };
 
-export const register = async (name:string,email: string, username: string, password: string,gender:any) => {
+export const register = async (
+  name: string,
+  email: string,
+  password: string,
+  gender: Gender,
+  roleName: string
+) => {
+
+  const normalizedEmail = email.toLowerCase();
+
   const existingEmail = await prisma.user.findFirst({
-    where: { email },
+    where: { email: normalizedEmail },
   });
 
   if (existingEmail) {
     throw createHttpError(409, 'Email already Registered');
   }
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  const existingUsername = await prisma.user.findFirst({
-    where: { username },
+  const role = await prisma.role.findUnique({
+    where: { role_name: roleName },
   });
 
-  if (existingUsername) {
-    throw createHttpError(409, 'Username already Registered');
+  if (!role) {
+    throw createHttpError(400, 'Role not found');
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  
-  // Create type-safe input data
-  const userData: Prisma.UserCreateInput = {
-    name,
-    email,
-    username,
-    password: hashedPassword,
-    gender
-  };
-
-  await prisma.user.create({
-    data: userData
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email:normalizedEmail,
+      password: hashedPassword,
+      gender,
+      role_id: role.id,
+    },
   });
 
-  return 
+  return serializeUser(user); // Serialize before returning
 };
+export const login = async (email: string, password: string, roleName: string) => {
+    
+  const normalizedEmail = email.toLowerCase();
 
-export const login = async (username: string, password: string) => {
-  const user = await prisma.user.findUnique({ where: { username } });
+  const user = await prisma.user.findUnique({
+    where: { email:normalizedEmail },
+    include: { role: true }, // Include role untuk pengecekan
+  });
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    throw createHttpError(401, 'Username or password wrong');
+    throw createHttpError(401, 'Email or password wrong');
+  }
+
+  // Pengecekan role
+  if (user.role.role_name !== roleName) {
+    throw createHttpError(403, 'You do not have permission to access this endpoint');
   }
 
   const tokens = await generateTokens(user.id);
-  return { 
-    tokens 
-  };
+  return { tokens };
 };
-
 export const valrefreshToken = async (token: string) => {
   if (!token) {
     throw createHttpError(400, 'Refresh token is required');

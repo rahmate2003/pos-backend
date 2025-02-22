@@ -5,46 +5,40 @@ import { authenticate } from './auth.middleware';
 
 const prisma = new PrismaClient();
 
-// Define interface for the user type
 interface AuthUser {
   id: bigint;
   email: string;
-  username: string;
 }
 
 export const checkRole = (requiredRole: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Ensure the user is authenticated
+      // Pastikan pengguna sudah terautentikasi
       authenticate(req, res, async () => {
         const user = req.user as AuthUser;
 
-        // Find the user's role in the StoreUser table
-        const storeUser = await prisma.storeUser.findFirst({
-          where: {
-            userId: user.id,
-          },
-          include: {
-            Role: true,
-          },
+        // Ambil data user beserta role-nya
+        const userData = await prisma.user.findUnique({
+          where: { id: Number(user.id) },
+          include: { role: true }, // Include role untuk pengecekan
         });
 
-        if (!storeUser) {
+        if (!userData || !userData.role) {
           return res.status(403).json({
             success: false,
-            message: 'User does not have a role in any store',
+            message: 'User does not have a valid role',
           });
         }
 
-        // Check if the user has the required role
-        if (storeUser.Role.name !== requiredRole) {
+        // Periksa apakah role user sesuai dengan yang dibutuhkan
+        if (userData.role.role_name !== requiredRole) {
           return res.status(403).json({
             success: false,
-            message: `User does not have the required role`,
+            message: `User does not have the required role: ${requiredRole}`,
           });
         }
 
-        // If the user has the required role, proceed to the next middleware
+        // Jika role sesuai, lanjutkan ke middleware/controller berikutnya
         next();
       });
     } catch (error) {

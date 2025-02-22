@@ -5,13 +5,13 @@ import {validate} from '../middlewares/validate.middleware';
 export const registerSchema = Joi.object({
   name: Joi.string().min(3).max(64).required(),
   email: Joi.string().email().required(),
-  username: Joi.string().min(3).max(30).required(),
   password: Joi.string().min(6).required(),
   gender: Joi.string().valid('male', 'female').required(),
+   role: Joi.string().valid('super_admin','owner','admin_toko','kasir_toko','member','user').required(),
 });
 
 const loginSchema = Joi.object({
-  username: Joi.string().min(3).max(30).required(),
+  email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
 });
 
