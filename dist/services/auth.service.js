@@ -12,73 +12,86 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.refreshToken = exports.login = exports.register = void 0;
+exports.logout = exports.valrefreshToken = exports.login = exports.register = exports.generateTokens = void 0;
 // src/services/auth.service.ts
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = __importDefault(require("../config/config"));
+const http_errors_1 = __importDefault(require("http-errors"));
+const redis_1 = __importDefault(require("../utils/redis"));
 const prisma = new client_1.PrismaClient();
-const register = (email, username, password) => __awaiter(void 0, void 0, void 0, function* () {
-    // Cek apakah email atau username sudah digunakan
-    const existingUser = yield prisma.user.findFirst({
-        where: {
-            OR: [{ email }, { username }],
-        },
-    });
-    if (existingUser) {
-        throw new Error('Email atau username sudah digunakan');
-    }
-    // Hash password sebelum disimpan
-    const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-    // Simpan user baru ke database
-    const newUser = yield prisma.user.create({
-        data: {
-            email,
-            username,
-            password: hashedPassword,
-        },
-    });
-    // Buat token JWT untuk user baru
-    const accessToken = jsonwebtoken_1.default.sign({ userId: newUser.id }, config_1.default.jwt.secret, { expiresIn: config_1.default.jwt.accessExpiration });
-    const refreshToken = jsonwebtoken_1.default.sign({ userId: newUser.id }, config_1.default.jwt.secret, { expiresIn: config_1.default.jwt.refreshExpiration });
-    // Simpan refresh token ke database
-    yield prisma.refreshToken.create({
-        data: {
-            userId: newUser.id,
-            token: refreshToken,
-        },
-    });
+const generateTokens = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const accessToken = jsonwebtoken_1.default.sign({ userId: userId.toString() }, config_1.default.jwt.secret, { expiresIn: config_1.default.jwt.accessExpiration });
+    const refreshToken = jsonwebtoken_1.default.sign({ userId: userId.toString() }, config_1.default.jwt.Refreshsecret, { expiresIn: config_1.default.jwt.refreshExpiration });
+    const redisKey = `refresh_token:${userId.toString()}`;
+    yield redis_1.default.setEx(redisKey, config_1.default.jwt.refreshExpiration, refreshToken);
     return { accessToken, refreshToken };
 });
+exports.generateTokens = generateTokens;
+const register = (name, email, username, password, gender) => __awaiter(void 0, void 0, void 0, function* () {
+    const existingEmail = yield prisma.user.findFirst({
+        where: { email },
+    });
+    if (existingEmail) {
+        throw (0, http_errors_1.default)(409, 'Email already Registered');
+    }
+    const existingUsername = yield prisma.user.findFirst({
+        where: { username },
+    });
+    if (existingUsername) {
+        throw (0, http_errors_1.default)(409, 'Username already Registered');
+    }
+    const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
+    // Create type-safe input data
+    const userData = {
+        name,
+        email,
+        username,
+        password: hashedPassword,
+        gender
+    };
+    const newUser = yield prisma.user.create({
+        data: userData
+    });
+    return;
+});
 exports.register = register;
-const login = (email, password) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = yield prisma.user.findUnique({ where: { email } });
-    if (user && (yield bcryptjs_1.default.compare(password, user.password))) {
-        const accessToken = jsonwebtoken_1.default.sign({ userId: user.id }, config_1.default.jwt.secret, { expiresIn: config_1.default.jwt.accessExpiration });
-        const refreshToken = jsonwebtoken_1.default.sign({ userId: user.id }, config_1.default.jwt.secret, { expiresIn: config_1.default.jwt.refreshExpiration });
-        yield prisma.refreshToken.create({
-            data: {
-                userId: user.id,
-                token: refreshToken,
-            },
-        });
-        return { accessToken, refreshToken };
+const login = (username, password) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield prisma.user.findUnique({ where: { username } });
+    if (!user || !(yield bcryptjs_1.default.compare(password, user.password))) {
+        throw (0, http_errors_1.default)(401, 'Username or password wrong');
     }
-    else {
-        throw new Error('Invalid credentials');
-    }
+    const tokens = yield (0, exports.generateTokens)(user.id);
+    return {
+        tokens
+    };
 });
 exports.login = login;
-const refreshToken = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    const refreshToken = yield prisma.refreshToken.findUnique({ where: { token } });
-    if (refreshToken) {
-        const payload = jsonwebtoken_1.default.verify(token, config_1.default.jwt.secret);
-        const accessToken = jsonwebtoken_1.default.sign({ userId: payload.userId }, config_1.default.jwt.secret, { expiresIn: config_1.default.jwt.accessExpiration });
-        return { accessToken };
+const valrefreshToken = (token) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!token) {
+        throw (0, http_errors_1.default)(400, 'Refresh token is required');
     }
-    else {
-        throw new Error('Invalid refresh token');
+    try {
+        const payload = jsonwebtoken_1.default.verify(token, config_1.default.jwt.Refreshsecret);
+        const storedToken = yield redis_1.default.get(`refresh_token:${payload.userId}`);
+        if (!storedToken || storedToken !== token) {
+            throw (0, http_errors_1.default)(403, 'Invalid refresh token');
+        }
+        const tokens = yield (0, exports.generateTokens)(BigInt(payload.userId));
+        return { tokens };
+    }
+    catch (error) {
+        if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
+            throw (0, http_errors_1.default)(403, 'Invalid refresh token');
+        }
+        throw error;
     }
 });
-exports.refreshToken = refreshToken;
+exports.valrefreshToken = valrefreshToken;
+const logout = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const redisKey = `refresh_token:${userId.toString()}`;
+    yield redis_1.default.del(redisKey);
+    return { message: 'Logged out successfully' };
+});
+exports.logout = logout;

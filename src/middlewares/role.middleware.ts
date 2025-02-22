@@ -40,7 +40,7 @@ export const checkRole = (requiredRole: string) => {
         if (storeUser.Role.name !== requiredRole) {
           return res.status(403).json({
             success: false,
-            message: `User does not have the required role: ${requiredRole}`,
+            message: `User does not have the required role`,
           });
         }
 

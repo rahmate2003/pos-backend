@@ -4,7 +4,6 @@ import { login, register, valrefreshToken, logout } from '../services/auth.servi
 import { validateRegister, validateLogin, validateRefreshToken } from '../validators/auth.validator';
 import { authenticate } from '../middlewares/auth.middleware';
 
-// Define interface for the user type
 interface AuthUser {
   id: bigint;
   email: string;

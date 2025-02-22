@@ -9,51 +9,72 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.refreshTokenController = exports.loginController = exports.registerController = void 0;
+exports.logoutController = exports.refreshTokenController = exports.loginController = exports.registerController = void 0;
 const auth_service_1 = require("../services/auth.service");
 const auth_validator_1 = require("../validators/auth.validator");
-const handleValidationErrors = (req, res, next) => {
-    next();
-};
-// Register Controller
+const auth_middleware_1 = require("../middlewares/auth.middleware");
 exports.registerController = [
     auth_validator_1.validateRegister,
-    handleValidationErrors,
     (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const { email, username, password } = req.body;
-            const tokens = yield (0, auth_service_1.register)(email, username, password);
-            res.status(201).json({ message: 'Registrasi berhasil', tokens });
-        }
-        catch (error) {
-            next(error);
-        }
-    })
-];
-// Login Controller
-exports.loginController = [
-    auth_validator_1.validateLogin,
-    handleValidationErrors,
-    (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-        try {
-            const { email, password } = req.body;
-            const tokens = yield (0, auth_service_1.login)(email, password);
-            res.json(tokens);
+            const { name, email, username, password, gender } = req.body;
+            const result = yield (0, auth_service_1.register)(name, email, username, password, gender);
+            res.status(201).json({
+                success: true,
+                message: 'User Created',
+                data: result,
+            });
         }
         catch (error) {
             next(error);
         }
     }),
 ];
-// Refresh Token Controller
+exports.loginController = [
+    auth_validator_1.validateLogin,
+    (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const { username, password } = req.body;
+            const result = yield (0, auth_service_1.login)(username, password);
+            res.json({
+                success: true,
+                message: 'User Login',
+                data: result,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }),
+];
 exports.refreshTokenController = [
     auth_validator_1.validateRefreshToken,
-    handleValidationErrors,
     (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const { refreshToken } = req.body;
-            const tokens = yield refreshToken(refreshToken);
-            res.json(tokens);
+            const result = yield (0, auth_service_1.valrefreshToken)(refreshToken);
+            res.json({
+                success: true,
+                message: 'Token berhasil diperbarui',
+                data: result,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }),
+];
+exports.logoutController = [
+    auth_middleware_1.authenticate,
+    (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            const result = yield (0, auth_service_1.logout)(user.id);
+            res.json({
+                success: true,
+                message: 'Logout berhasil',
+                data: result,
+            });
         }
         catch (error) {
             next(error);
